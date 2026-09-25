@@ -52,4 +52,16 @@ function localParts(tz, d = new Date()) {
   return { date: `${p.year}-${p.month}-${p.day}`, hm: `${p.hour}:${p.minute}`, minutes: +p.hour * 60 + +p.minute, weekday: wd };
 }
 
-module.exports = { admin, getVapid, pushToUser, localParts };
+// Nutri usa este mismo servidor de avisos desde su propio dominio.
+const APP_URL = { ritmo: 'https://hola-ritmo.vercel.app', nutri: 'https://hola-nutri.vercel.app' };
+const ALLOWED = ['https://hola-ritmo.vercel.app', 'https://hola-nutri.vercel.app', 'https://nutri-app-sage-sigma.vercel.app', 'https://ritmo-app-wheat.vercel.app'];
+function cors(req, res) {
+  const o = req.headers.origin;
+  if (o && ALLOWED.includes(o)) { res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin'); }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
+  return false;
+}
+
+module.exports = { admin, getVapid, pushToUser, localParts, cors, APP_URL };

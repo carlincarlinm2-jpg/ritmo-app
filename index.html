@@ -440,7 +440,7 @@ function userName(){return (user?.user_metadata?.name||user?.email?.split('@')[0
 /* ====================== Datos ====================== */
 async function loadData(){
   const since=new Date();since.setDate(since.getDate()-90);
-  const [a,b]=await Promise.all([sb.from('rt_items').select('*').order('sort').order('created_at'),sb.from('rt_habit_log').select('item_id,day').gte('day',dkey(since))]);
+  const [a,b]=await Promise.all([sb.from('rt_items').select('*').eq('app','ritmo').order('sort').order('created_at'),sb.from('rt_habit_log').select('item_id,day').gte('day',dkey(since))]);
   if(a.error)console.error(a.error);items=a.data||[];logs=b.data||[];
 }
 function isLogged(id,day=today()){return logs.some(l=>l.item_id===id&&l.day===day)}
@@ -685,14 +685,14 @@ async function enablePush(btn){
     let sub=await reg.pushManager.getSubscription();
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(publicKey)});
     const j=sub.toJSON();
-    const {error}=await sb.from('rt_push_subs').upsert({user_id:user.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,tz:Intl.DateTimeFormat().resolvedOptions().timeZone},{onConflict:'endpoint'});
+    const {error}=await sb.from('rt_push_subs').upsert({user_id:user.id,app:'ritmo',endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,tz:Intl.DateTimeFormat().resolvedOptions().timeZone},{onConflict:'endpoint'});
     if(error)throw error;
     localStorage.setItem('ritmo_push','on');render();toast('¡Avisos activados!','bell');
   }catch(e){console.error(e);alert('No se pudieron activar los avisos: '+(e.message||e));if(btn)btn.disabled=false}
 }
 async function testPush(btn){
   btn.disabled=true;const {data:{session}}=await sb.auth.getSession();
-  const r=await fetch('/api/test-push',{method:'POST',headers:{Authorization:'Bearer '+session.access_token}});const j=await r.json();
+  const r=await fetch('/api/test-push',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({app:'ritmo'})});const j=await r.json();
   btn.disabled=false;toast(r.ok?'Enviada, revisa tus notificaciones':'No se pudo: '+(j.error||r.status),r.ok?'send':'bell');
 }
 
