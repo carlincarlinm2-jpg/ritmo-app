@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     const app = ['nutri', 'lana'].includes(req.body && req.body.app) ? req.body.app : 'ritmo';
     const { data: subs } = await sb.from('rt_push_subs').select('*').eq('user_id', u.user.id).eq('app', app);
     if (!subs?.length) { res.status(400).json({ error: 'Este dispositivo todavía no tiene notificaciones activadas.' }); return; }
-    const sent = await pushToUser(sb, subs, app === 'lana' ? { title: '¡Listo! 🪙', body: 'Así te voy a avisar de tus fechas de pago.', tag: 'test', url: APP_URL.lana + '/' } : app === 'nutri' ? { title: '¡Listo! 🥦', body: 'Así te van a llegar tus recordatorios de Nutri.', tag: 'test', url: APP_URL.nutri + '/' } : { title: '¡Listo! 🎉', body: 'Así te van a llegar tus recordatorios de Ritmo.', tag: 'test', url: '/' });
+    const sent = await pushToUser(sb, subs, app === 'lana' ? { title: '¡Listo! 💼', body: 'Así te voy a avisar de tus fechas de pago.', tag: 'test', url: APP_URL.lana + '/' } : app === 'nutri' ? { title: '¡Listo! 🥦', body: 'Así te van a llegar tus recordatorios de Nutri.', tag: 'test', url: APP_URL.nutri + '/' } : { title: '¡Listo! 🎉', body: 'Así te van a llegar tus recordatorios de Ritmo.', tag: 'test', url: '/' });
     res.status(200).json({ ok: true, sent });
   } catch (e) { console.error(e); res.status(e.statusCode || 500).json({ error: e.statusCode ? e.message : 'Error interno' }); }
 };
