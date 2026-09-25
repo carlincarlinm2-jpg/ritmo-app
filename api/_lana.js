@@ -1,7 +1,8 @@
-// Avisos de Lana (finanzas): fecha límite de pago (3 días antes, 1 día antes y el día) y fecha de corte.
+// Avisos de North (finanzas): fecha límite de pago (por defecto 14, 8 y 2 días antes y el mismo día; cada quien lo elige) y fecha de corte.
 // Se revisa a partir de las 9:00 hora local de cada persona; notified_key evita repetir el mismo aviso.
 const { pushToUser, localParts, APP_URL } = require('./_lib');
 
+const DEFAULT_DAYS = [14, 8, 2, 0];
 const mxn = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const lastDay = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m: 1..12
 const ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -24,6 +25,8 @@ async function lanaTick(sb, tzByUser, subsOf) {
   const users = Object.keys(tzByUser);
   if (!users.length) return 0;
   const { data: accs } = await sb.from('fz_accounts').select('*').eq('archived', false).eq('notify', true).in('user_id', users);
+  const { data: sets } = await sb.from('fz_settings').select('user_id,remind_days').in('user_id', users);
+  const daysBy = Object.fromEntries((sets || []).map((x) => [x.user_id, x.remind_days]));
   for (const a of accs || []) {
     const lp = localParts(tzByUser[a.user_id]);
     if (lp.minutes < 9 * 60) continue; // desde las 9:00
@@ -35,8 +38,10 @@ async function lanaTick(sb, tzByUser, subsOf) {
       const left = due ? diffDays(today, due) : 99;
       const cycle = due && due.slice(0, 7);
       const owes = a.kind !== 'card' || Number(a.balance) > 0 || (a.plans || []).length;
-      if ([3, 1, 0].includes(left) && a.paid_cycle !== cycle && owes) {
-        const when = left === 0 ? 'hoy es tu día límite de pago' : left === 1 ? 'pagas mañana' : 'pagas en 3 días';
+      const wanted = Array.isArray(daysBy[a.user_id]) && daysBy[a.user_id].length ? daysBy[a.user_id] : DEFAULT_DAYS;
+      if (wanted.includes(left) && a.paid_cycle !== cycle && owes) {
+        const dayTxt = Number(due.slice(8, 10));
+        const when = left === 0 ? 'hoy es tu día límite de pago' : left === 1 ? 'pagas mañana' : `pagas en ${left} días (el ${dayTxt})`;
         let body;
         if (a.kind === 'card') body = [a.no_interest_payment ? 'Para no generar intereses: ' + mxn(a.no_interest_payment) : null, a.min_payment ? 'Mínimo: ' + mxn(a.min_payment) : null].filter(Boolean).join(' · ') || 'Revisa cuánto te toca pagar.';
         else body = a.monthly_payment ? 'Mensualidad: ' + mxn(a.monthly_payment) : 'No se te olvide.';

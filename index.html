@@ -453,7 +453,7 @@ function applyTheme(){const p=themePref(),t=p==='auto'?timeOfDay():p==='dark'?'n
 setInterval(()=>{applyTheme();if(user)render()},5*60*1000);
 
 /* ====================== UI helpers ====================== */
-function openSheet(html){const s=document.getElementById('sheet');s.innerHTML='<div class="grab"></div>'+html;hydrateIcons(s);document.getElementById('overlay').classList.add('open');document.documentElement.classList.add('sheet-open')}
+function openSheet(html){sfx('open');const s=document.getElementById('sheet');s.innerHTML='<div class="grab"></div>'+html;hydrateIcons(s);document.getElementById('overlay').classList.add('open');document.documentElement.classList.add('sheet-open')}
 function closeSheet(){stopListening();document.getElementById('overlay').classList.remove('open');document.documentElement.classList.remove('sheet-open')}
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeSheet()});
 function head(t,sub){return `<div class="sheet-head"><div><h2>${t}</h2>${sub?`<p>${sub}</p>`:''}</div><button class="close" onclick="closeSheet()" aria-label="Cerrar">${ic('close',18)}</button></div>`}
@@ -509,8 +509,8 @@ function remindersUpcoming(){return items.filter(i=>i.kind==='reminder'&&!i.done
 
 async function toggleHabit(id,el){
   const day=today();
-  if(isLogged(id,day)){logs=logs.filter(l=>!(l.item_id===id&&l.day===day));render();await sb.from('rt_habit_log').delete().eq('item_id',id).eq('day',day)}
-  else{logs.push({item_id:id,day});if(el){const r=el.getBoundingClientRect();confetti(r.left+r.width-30,r.top+10)}render();
+  if(isLogged(id,day)){sfx('undo');logs=logs.filter(l=>!(l.item_id===id&&l.day===day));render();await sb.from('rt_habit_log').delete().eq('item_id',id).eq('day',day)}
+  else{sfx('ok');logs.push({item_id:id,day});if(el){const r=el.getBoundingClientRect();confetti(r.left+r.width-30,r.top+10)}render();
     await sb.from('rt_habit_log').insert({item_id:id,user_id:user.id,day});
     checkDayComplete()}
 }
@@ -527,6 +527,7 @@ function checkDayComplete(){
   setTimeout(()=>celebrate(dayStreak()),450);
 }
 function celebrate(streak){
+  sfx('celebrate');
   const msgs={1:'¡Primer día completo!',3:'¡3 días seguidos! Ya agarraste ritmo.',7:'¡Una semana completa!',14:'¡Dos semanas! Eres imparable.',30:'¡Un mes entero! Leyenda.'};
   const el=document.createElement('div');el.className='celebrate';
   el.innerHTML=`<div class="cel-card">${moonSVG(150,'celebrate')}<div class="cel-flame">${ic('flame',30)}<b>${streak||1}</b></div><h2>¡Día completo!</h2><p>${msgs[streak]||(streak>1?`Llevas ${streak} días seguidos cumpliendo todo.`:'Terminaste todo lo de hoy. ¡Así se hace!')}</p><button class="btn brand">¡Vamos!</button></div>`;
@@ -594,7 +595,7 @@ function viewReminders(){
 function viewSettings(){
   const st=notifState();
   return `<div class="section-title" style="margin-top:12px;font-size:26px">Ajustes</div><div class="wide"><div>
-  <section class="card pad" style="display:flex;gap:14px;align-items:center"><div style="width:52px;height:52px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--brand-d)">${esc((userName()||'?').charAt(0).toUpperCase())}</div><div><b style="font-size:18px">${esc(userName())}</b><div class="muted small">${esc(user?.email||'')}</div></div></section>
+  <section class="card pad" style="display:flex;gap:14px;align-items:center;cursor:pointer" onclick="openName()"><div style="width:52px;height:52px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--brand-d)">${esc((userName()||'?').charAt(0).toUpperCase())}</div><div><b style="font-size:18px">${esc(userName())}</b><div class="muted small">${esc(user?.email||'')}</div></div><span style="margin-left:auto;color:var(--brand);font-weight:700;font-size:14px;display:flex;align-items:center;gap:4px">${ic('edit',16)} Cambiar nombre</span></section>
   <div class="section-title">Notificaciones</div>
   <section class="card">
     <div class="row" style="cursor:default"><span class="check" style="border:0;background:${st==='on'?'var(--ok)':'#d5d5e0'}">${ic(st==='on'?'check':'bell',15)}</span><div class="row-main"><div class="row-title">${st==='on'?'Activadas en este dispositivo':'No activadas en este dispositivo'}</div><div class="row-sub">${st==='unsupported-ios'?'Instala la app en tu pantalla de inicio para activarlas.':'Cada teléfono o computadora se activa por separado.'}</div></div></div>
@@ -602,6 +603,8 @@ function viewSettings(){
     ${st==='on'?`<div style="padding:0 16px 14px"><button class="btn alt" onclick="testPush(this)">${ic('send',18)} Mandar notificación de prueba</button></div>`:''}
   </section>
   ${routineCard()}
+  <div class="section-title">Sonidos</div>
+  <section class="card pad"><div class="rhead"><span><b>Sonidos al tocar</b> <span class="muted small">clics y festejos</span></span><input type="checkbox" class="rtgl" ${soundOn()?'checked':''} onchange="setSound(this.checked)"></div></section>
   <div class="section-title">Apariencia</div>
   <section class="card"><div style="padding:14px 16px"><div class="seg">${[['auto','Según la hora'],['light','Clara'],['dark','Oscura']].map(([v,n])=>`<button class="${themePref()===v?'on':''}" onclick="setTheme('${v}')">${n}</button>`).join('')}</div></div></section>
   <section class="card"><button class="row" onclick="if(confirm('¿Cerrar sesión?'))logout()" style="color:var(--danger)">${ic('logout',20)}<div class="row-main"><div class="row-title">Cerrar sesión</div></div></button></section>
@@ -639,12 +642,13 @@ async function markQuit(id,clean,btn,day=today()){
   if(error){if(btn)btn.disabled=false;return toast('No se pudo guardar')}
   qlogs=qlogs.filter(l=>!(l.quit_id===id&&l.day===day));qlogs.push({quit_id:id,day,clean});
   const after=qStreak(id),q=quits.find(x=>x.id===id);
-  try{navigator.vibrate&&navigator.vibrate(clean?[20,40,20]:30)}catch(e){}
+  sfx(clean?'ok':'undo');try{navigator.vibrate&&navigator.vibrate(clean?[20,40,20]:30)}catch(e){}
   if(clean&&MILESTONES.includes(after)&&after>before){render();celebrateQuit(q,after)}
   else{render();toast(clean?(after>1?`¡${after} días sin ${q.title.toLowerCase()}!`:'¡Primer día! Así se empieza'):'Está bien, mañana vuelves a empezar')}
   if(document.getElementById('overlay').classList.contains('open')&&document.getElementById('qcal'))openQuit(id,true);
 }
 function celebrateQuit(q,n){
+  sfx('celebrate');
   confetti(innerWidth/2,innerHeight/3);setTimeout(()=>confetti(innerWidth/3,innerHeight/2),250);
   openSheet(`<div style="text-align:center;padding:10px 0 4px">${moonSVG(130,'celebrate')}<div class="qhero"><div class="big">${n}</div><div class="lbl">${dias(n)} sin ${esc(q.title.toLowerCase())}</div></div><p class="muted" style="line-height:1.5">${n>=30?'Esto ya es un hábito nuevo. Estoy orgulloso de ti.':n>=7?'¡Una semana o más! Lo más difícil ya pasó.':'¡Vas muy bien! Cada día cuenta.'}${q.money_per_day?`<br>Llevas <b>${money(qTotal(q.id)*q.money_per_day)}</b> ahorrados.`:''}</p><button class="btn brand" onclick="closeSheet()">¡Vamos por más!</button></div>`);
 }
@@ -709,6 +713,24 @@ async function saveQuit(id,btn){
 }
 async function delQuit(id){if(!confirm('¿Borrar este propósito y su calendario?'))return;const {error}=await sb.from('rt_quits').delete().eq('id',id);if(error)return toast('No se pudo borrar');quits=quits.filter(x=>x.id!==id);qlogs=qlogs.filter(l=>l.quit_id!==id);closeSheet();render()}
 
+
+/* ====================== Sonidos (generados, sin archivos) ====================== */
+let __actx=null;
+function soundOn(){try{return localStorage.getItem('ritmo_sound')!=='off'}catch(e){return true}}
+function setSound(on){try{localStorage.setItem('ritmo_sound',on?'on':'off')}catch(e){}if(on)sfx('ok')}
+function __ac(){if(!__actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;__actx=new C()}if(__actx.state==='suspended')__actx.resume();return __actx}
+function __tone(f,d,{type='sine',vol=.07,at=0,slide=null}={}){const c=__ac();if(!c)return;const t=c.currentTime+at,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02)}
+const SFX={
+  tap(){__tone(1150,.05,{vol:.035,type:'triangle'})},
+  open(){__tone(520,.12,{vol:.045,slide:820})},
+  toggle(){__tone(900,.05,{vol:.04,type:'square'});__tone(1300,.05,{vol:.03,type:'square',at:.05})},
+  ok(){__tone(880,.12,{vol:.06});__tone(1320,.18,{vol:.06,at:.09})},
+  undo(){__tone(700,.1,{vol:.045,slide:420})},
+  celebrate(){[523,659,784,1047].forEach((f,i)=>__tone(f,.22,{vol:.06,type:'triangle',at:i*.09}));__tone(2093,.5,{vol:.03,at:.36})},
+};
+function sfx(n){if(soundOn())try{SFX[n]&&SFX[n]()}catch(e){}}
+document.addEventListener('pointerdown',e=>{const b=e.target.closest('button,.row,.quit,[onclick]');if(!b||b.dataset.nosfx!=null)return;sfx('tap')},{passive:true});
+
 /* ====================== Avisos de rutina por momento ====================== */
 const ROUTINE_DEF={manana:{on:true,times:['07:00','10:30']},tarde:{on:true,times:['13:00','16:30']},noche:{on:true,times:['20:30','23:30']}};
 const ROUTINE_RANGE={manana:['06:00','12:00','6 am a 12 pm'],tarde:['12:00','17:00','12 a 5 pm'],noche:['20:00','01:00','8 pm a 1 am']};
@@ -729,6 +751,9 @@ async function saveRoutine(btn){
   btn.disabled=false;if(error)return toast('No se pudo guardar');
   routinePref=out;render();toast(notifState()==='on'?'¡Listo! Te aviso a esas horas':'Guardado. Activa los avisos para recibirlos');
 }
+
+function openName(force){openSheet(head(force?'¿Cómo te llamas?':'Tu nombre',force?'Para saludarte por tu nombre y no por tu correo.':'Se usa en Ritmo, Nutri y North.')+`${force?`<div style="display:flex;justify-content:center">${moonSVG(100,'wave')}</div>`:''}<div class="field"><input id="nmIn" value="${esc(user?.user_metadata?.name||'')}" placeholder="Tu nombre" autocomplete="given-name"></div><button class="btn brand" onclick="saveName(this)">${ic('check',18)} Guardar</button>`);setTimeout(()=>document.getElementById('nmIn')?.focus(),300)}
+async function saveName(btn){const nm=document.getElementById('nmIn').value.trim();if(!nm)return toast('Escribe tu nombre');btn.disabled=true;const {data,error}=await sb.auth.updateUser({data:{name:nm}});if(error){btn.disabled=false;return toast('No se pudo guardar')}user=data.user;sfx('ok');closeSheet();render();toast('¡Mucho gusto, '+userName()+'!')}
 function setTheme(v){try{localStorage.setItem('ritmo_theme',v)}catch(e){}applyTheme();render()}
 
 /* ====================== Navegación ====================== */
@@ -875,6 +900,7 @@ async function start(u,isNew){
   await loadData();buildNav();
   const q=new URLSearchParams(location.search).get('view');if(q&&['today','habits','reminders','settings','goals'].includes(q))view=q;
   render();hideSplash();
+  if(!u.user_metadata?.name)setTimeout(()=>openName(true),isNew?2500:800);
   if(isNew)setTimeout(()=>toast('¡Bienvenid@, '+userName()+'! Elige una rutina para empezar','repeat'),500);
 }
 function hideSplash(){const s=document.getElementById('splash');if(s&&!s.classList.contains('hide')){s.classList.add('hide');setTimeout(()=>s.remove(),400)}}
