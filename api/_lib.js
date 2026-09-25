@@ -53,11 +53,12 @@ function localParts(tz, d = new Date()) {
 }
 
 // Nutri usa este mismo servidor de avisos desde su propio dominio.
-const APP_URL = { ritmo: 'https://hola-ritmo.vercel.app', nutri: 'https://hola-nutri.vercel.app' };
-const ALLOWED = ['https://hola-ritmo.vercel.app', 'https://hola-nutri.vercel.app', 'https://nutri-app-sage-sigma.vercel.app', 'https://ritmo-app-wheat.vercel.app'];
+const APP_URL = { ritmo: 'https://hola-ritmo.vercel.app', nutri: 'https://hola-nutri.vercel.app', lana: 'https://hola-lana.vercel.app' };
+const ALLOWED = ['https://hola-ritmo.vercel.app', 'https://hola-nutri.vercel.app', 'https://nutri-app-sage-sigma.vercel.app', 'https://ritmo-app-wheat.vercel.app', 'https://hola-lana.vercel.app'];
+const ALLOWED_RE = /^https:\/\/lana-app[a-z0-9-]*\.vercel\.app$/;
 function cors(req, res) {
   const o = req.headers.origin;
-  if (o && ALLOWED.includes(o)) { res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin'); }
+  if (o && (ALLOWED.includes(o) || ALLOWED_RE.test(o))) { res.setHeader('Access-Control-Allow-Origin', o); res.setHeader('Vary', 'Origin'); }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   if (req.method === 'OPTIONS') { res.status(204).end(); return true; }

@@ -2,6 +2,7 @@
 // Envía: 1) recordatorios cuya hora ya llegó, 2) hábitos con hora cuyo momento llegó hoy.
 // Es seguro llamarlo de más: cada aviso se marca como enviado y no se repite.
 const { admin, getVapid, pushToUser, localParts, APP_URL } = require('./_lib');
+const { lanaTick } = require('./_lana');
 
 module.exports = async (req, res) => {
   try {
@@ -43,6 +44,8 @@ module.exports = async (req, res) => {
         sent += await pushToUser(sb, await subsOf(h.user_id, app), { title: `${h.emoji ? h.emoji + ' ' : ''}${h.title}`, body: (app === 'nutri' ? 'Tu brócoli te lo recuerda 🥦' : 'Tu hábito de hoy. ¡Tú puedes!'), tag: h.id + lp.date, url: app === 'ritmo' ? '/?view=today' : APP_URL[app] + '/' });
       }
     }
+    // 3) Lana: fechas de pago y de corte (si falla, no afecta los demás avisos).
+    try { sent += await lanaTick(sb, tzByUser, subsOf); } catch (e) { console.error('lana tick', e.message); }
     res.status(200).json({ ok: true, sent });
   } catch (e) {
     console.error('tick error', e);
