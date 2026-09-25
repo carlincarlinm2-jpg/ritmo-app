@@ -3,6 +3,7 @@
 // Es seguro llamarlo de más: cada aviso se marca como enviado y no se repite.
 const { admin, getVapid, pushToUser, localParts, APP_URL } = require('./_lib');
 const { lanaTick } = require('./_lana');
+const { routineTick } = require('./_routine');
 
 module.exports = async (req, res) => {
   try {
@@ -44,7 +45,9 @@ module.exports = async (req, res) => {
         sent += await pushToUser(sb, await subsOf(h.user_id, app), { title: `${h.emoji ? h.emoji + ' ' : ''}${h.title}`, body: (app === 'nutri' ? 'Tu brócoli te lo recuerda 🥦' : 'Tu hábito de hoy. ¡Tú puedes!'), tag: h.id + lp.date, url: app === 'ritmo' ? '/?view=today' : APP_URL[app] + '/' });
       }
     }
-    // 3) Lana: fechas de pago y de corte (si falla, no afecta los demás avisos).
+    // 3) Avisos de rutina por momento del día.
+    try { sent += await routineTick(sb, tzByUser, subsOf); } catch (e) { console.error('routine tick', e.message); }
+    // 4) North (finanzas): fechas de pago y de corte (si falla, no afecta los demás avisos).
     try { sent += await lanaTick(sb, tzByUser, subsOf); } catch (e) { console.error('lana tick', e.message); }
     res.status(200).json({ ok: true, sent });
   } catch (e) {
