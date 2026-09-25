@@ -4,7 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
 
 function admin() {
-  const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = (process.env.SUPABASE_URL || '').trim(), key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(); // quita espacios o saltos de línea que se cuelan al copiar
   if (!url || !key) { const e = new Error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el servidor.'); e.statusCode = 500; throw e; }
   return createClient(url, key, { auth: { persistSession: false } });
 }
