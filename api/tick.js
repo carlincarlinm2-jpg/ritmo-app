@@ -44,6 +44,6 @@ module.exports = async (req, res) => {
     res.status(200).json({ ok: true, sent });
   } catch (e) {
     console.error('tick error', e);
-    res.status(e.statusCode || 500).json({ error: e.message });
+    res.status(e.statusCode || 500).json({ error: e.statusCode ? e.message : 'Error interno' });
   }
 };

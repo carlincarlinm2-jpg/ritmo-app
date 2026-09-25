@@ -4,7 +4,8 @@ const { createClient } = require('@supabase/supabase-js');
 const webpush = require('web-push');
 
 function admin() {
-  const url = (process.env.SUPABASE_URL || '').trim(), key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim(); // quita espacios o saltos de línea que se cuelan al copiar
+  // Quita espacios y saltos de línea en cualquier parte (a veces se cuelan al copiar la llave).
+  const url = (process.env.SUPABASE_URL || '').replace(/\s+/g, ''), key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').replace(/\s+/g, '');
   if (!url || !key) { const e = new Error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el servidor.'); e.statusCode = 500; throw e; }
   return createClient(url, key, { auth: { persistSession: false } });
 }
@@ -12,7 +13,7 @@ function admin() {
 async function getVapid(sb) {
   const read = async () => {
     const { data, error } = await sb.from('rt_config').select('key,value').in('key', ['vapid_public', 'vapid_private']);
-    if (error) { const e = new Error('Supabase: ' + error.message); e.statusCode = 500; throw e; }
+    if (error) { console.error('rt_config read', error.message); const e = new Error('No se pudo conectar con la base de datos.'); e.statusCode = 500; throw e; }
     const m = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
     return m.vapid_public && m.vapid_private ? { publicKey: m.vapid_public, privateKey: m.vapid_private } : null;
   };
@@ -21,7 +22,7 @@ async function getVapid(sb) {
     const k = webpush.generateVAPIDKeys();
     // ignoreDuplicates: si dos llamadas llegan al mismo tiempo, gana la primera y ambas usan la misma llave.
     const { error: upErr } = await sb.from('rt_config').upsert([{ key: 'vapid_public', value: k.publicKey }, { key: 'vapid_private', value: k.privateKey }], { onConflict: 'key', ignoreDuplicates: true });
-    if (upErr) { const e = new Error('Supabase (guardar llaves): ' + upErr.message); e.statusCode = 500; throw e; }
+    if (upErr) { console.error('rt_config write', upErr.message); const e = new Error('No se pudo conectar con la base de datos.'); e.statusCode = 500; throw e; }
     v = await read();
   }
   webpush.setVapidDetails('mailto:ritmo@example.com', v.publicKey, v.privateKey);

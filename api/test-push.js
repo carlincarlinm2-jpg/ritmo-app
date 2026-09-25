@@ -12,5 +12,5 @@ module.exports = async (req, res) => {
     if (!subs?.length) { res.status(400).json({ error: 'Este dispositivo todavía no tiene notificaciones activadas.' }); return; }
     const sent = await pushToUser(sb, subs, { title: '¡Listo! 🎉', body: 'Así te van a llegar tus recordatorios de Ritmo.', tag: 'test', url: '/' });
     res.status(200).json({ ok: true, sent });
-  } catch (e) { console.error(e); res.status(e.statusCode || 500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(e.statusCode || 500).json({ error: e.statusCode ? e.message : 'Error interno' }); }
 };
