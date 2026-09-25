@@ -255,6 +255,24 @@ html[data-time="night"] .moon .mo-zzz{fill:#b3a8ff}
 .hero-moon{position:absolute;right:10px;top:-6px}
 .auth-logo .moon{margin:0 auto}
 .empty .moon{margin:0 auto 6px}
+/* ===== Racha y celebración ===== */
+.streak-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 12px;border-radius:99px;background:rgba(0,0,0,.05);color:var(--muted);font-weight:700;font-size:13.5px}
+.streak-chip.on{background:linear-gradient(135deg,#ffedd5,#fed7aa);color:#c2410c}
+.streak-chip.on .ic{animation:flick 1s ease-in-out infinite alternate}
+@keyframes flick{from{transform:scale(.9) rotate(-6deg)}to{transform:scale(1.15) rotate(6deg)}}
+html[data-time="night"] .streak-chip{background:rgba(255,255,255,.06)}html[data-time="night"] .streak-chip.on{background:linear-gradient(135deg,#43230d,#5a2e10);color:#fdba74}
+.celebrate{position:fixed;inset:0;z-index:85;background:rgba(10,10,20,.55);backdrop-filter:blur(4px);display:grid;place-items:center;padding:20px;animation:fadeIn .25s}
+.celebrate.out{opacity:0;transition:opacity .3s}
+@keyframes fadeIn{from{opacity:0}}
+.cel-card{background:var(--card);border-radius:30px;padding:26px 22px 20px;max-width:360px;width:100%;text-align:center;animation:celPop .5s cubic-bezier(.3,1.5,.5,1)}
+@keyframes celPop{from{transform:scale(.6) translateY(40px);opacity:0}}
+.cel-card .moon{margin:-70px auto 0}
+.cel-flame{display:inline-flex;align-items:center;gap:4px;color:#f97316;margin-top:4px}
+.cel-flame b{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.cel-flame .ic{animation:flick .6s ease-in-out infinite alternate}
+.cel-card h2{font-size:26px;margin-top:4px}.cel-card p{color:var(--ink2);margin:8px 0 6px;line-height:1.45}
+.row .check{transition:transform .2s,background .2s}
+.row:active .check{transform:scale(.85)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -428,6 +446,14 @@ async function loadData(){
 function isLogged(id,day=today()){return logs.some(l=>l.item_id===id&&l.day===day)}
 function streakOf(h){let n=0;const d=new Date();if(!isLogged(h.id,dkey(d)))d.setDate(d.getDate()-1);
   for(let i=0;i<120;i++){if((h.days||[]).includes(d.getDay())){if(isLogged(h.id,dkey(d)))n++;else break}d.setDate(d.getDate()-1)}return n}
+// Racha de días: días seguidos (hasta hoy o ayer) en los que cumpliste TODOS tus hábitos de ese día.
+function dayStreak(){
+  const hs=items.filter(i=>i.kind==='habit');if(!hs.length)return 0;
+  const complete=d=>{const due=hs.filter(h=>(h.days||[]).includes(d.getDay())&&new Date(h.created_at||0)<=new Date(dkey(d)+'T23:59:59'));return due.length&&due.every(h=>isLogged(h.id,dkey(d)))};
+  const d=new Date();let n=0;if(!complete(d))d.setDate(d.getDate()-1);
+  for(let i=0;i<365;i++){const due=hs.some(h=>(h.days||[]).includes(d.getDay()));if(!due){d.setDate(d.getDate()-1);continue}if(complete(d)){n++;d.setDate(d.getDate()-1)}else break}
+  return n;
+}
 function habitsToday(){const wd=new Date().getDay();return items.filter(i=>i.kind==='habit'&&(i.days||[]).includes(wd))}
 function todosToday(){const t=today();return items.filter(i=>i.kind==='todo'&&(i.on_date===t||(!i.done&&i.on_date<t)))}
 function remindersUpcoming(){return items.filter(i=>i.kind==='reminder'&&!i.done).sort((a,b)=>new Date(a.due_at)-new Date(b.due_at))}
@@ -437,12 +463,28 @@ async function toggleHabit(id,el){
   if(isLogged(id,day)){logs=logs.filter(l=>!(l.item_id===id&&l.day===day));render();await sb.from('rt_habit_log').delete().eq('item_id',id).eq('day',day)}
   else{logs.push({item_id:id,day});if(el){const r=el.getBoundingClientRect();confetti(r.left+r.width-30,r.top+10)}render();
     await sb.from('rt_habit_log').insert({item_id:id,user_id:user.id,day});
-    const all=habitsToday();if(all.length&&all.every(h=>isLogged(h.id)))setTimeout(()=>toast('¡Rutina de hoy completa! 🔥','flame'),350)}
+    checkDayComplete()}
 }
 async function toggleDone(id,el){
   const it=items.find(i=>i.id===id);if(!it)return;it.done=!it.done;it.done_at=it.done?new Date().toISOString():null;
   if(it.done&&el){const r=el.getBoundingClientRect();confetti(r.left+r.width-30,r.top+10)}
-  render();await sb.from('rt_items').update({done:it.done,done_at:it.done_at}).eq('id',id);
+  render();if(it.done)checkDayComplete();await sb.from('rt_items').update({done:it.done,done_at:it.done_at}).eq('id',id);
+}
+function checkDayComplete(){
+  const hs=habitsToday(),td=todosToday();
+  if(!hs.length&&!td.length)return;
+  if(!hs.every(h=>isLogged(h.id))||!td.every(t=>t.done))return;
+  const k='ritmo_celebrated_'+today();try{if(localStorage.getItem(k))return;localStorage.setItem(k,'1')}catch(e){}
+  setTimeout(()=>celebrate(dayStreak()),450);
+}
+function celebrate(streak){
+  const msgs={1:'¡Primer día completo!',3:'¡3 días seguidos! Ya agarraste ritmo.',7:'¡Una semana completa!',14:'¡Dos semanas! Eres imparable.',30:'¡Un mes entero! Leyenda.'};
+  const el=document.createElement('div');el.className='celebrate';
+  el.innerHTML=`<div class="cel-card">${moonSVG(150,'celebrate')}<div class="cel-flame">${ic('flame',30)}<b>${streak||1}</b></div><h2>¡Día completo!</h2><p>${msgs[streak]||(streak>1?`Llevas ${streak} días seguidos cumpliendo todo.`:'Terminaste todo lo de hoy. ¡Así se hace!')}</p><button class="btn brand">¡Vamos!</button></div>`;
+  el.addEventListener('click',()=>{el.classList.add('out');setTimeout(()=>el.remove(),300)});
+  document.body.appendChild(el);
+  for(let i=0;i<4;i++)setTimeout(()=>confetti(window.innerWidth*(.2+Math.random()*.6),window.innerHeight*.35),i*180);
+  try{navigator.vibrate&&navigator.vibrate([30,40,30])}catch(e){}
 }
 async function removeItem(id){if(!confirm('¿Borrar?'))return;items=items.filter(i=>i.id!==id);closeSheet();render();await sb.from('rt_items').delete().eq('id',id);toast('Borrado','trash')}
 async function saveItem(obj){
@@ -479,7 +521,7 @@ function viewToday(){
   const hs=habitsToday(),td=todosToday(),rm=remindersUpcoming().filter(r=>new Date(r.due_at)<new Date(Date.now()+36*3600e3));
   const tot=hs.length+td.length,done=hs.filter(h=>isLogged(h.id)).length+td.filter(t=>t.done).length,pct=tot?done/tot*100:0;
   const fecha=(s=>s.charAt(0).toUpperCase()+s.slice(1))(new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}));
-  const left=`<section class="hero"><div class="hero-moon">${moonSVG(96,pct===100&&tot?'celebrate':'idle')}</div><div class="hero-hello">${greeting()}${userName()?', '+esc(userName()):''}</div><div class="hero-date">${fecha}</div>
+  const left=`<section class="hero"><div class="hero-moon">${moonSVG(96,pct===100&&tot?'celebrate':'idle')}</div><div class="hero-hello">${greeting()}${userName()?', '+esc(userName()):''}</div><div class="hero-date">${fecha}</div>${(()=>{const ds=dayStreak();return `<div class="streak-chip ${ds?'on':''}">${ic('flame',16)} ${ds?ds+' '+(ds===1?'día':'días')+' de racha':'Empieza tu racha hoy'}</div>`})()}
     <div class="hero-stats">${ring(pct)}<div><div class="hero-num">${done}<span style="font-size:22px;color:var(--muted)"> / ${tot}</span></div><div class="hero-sub">${tot?(pct===100?'¡Día completo! 🎉':'cosas hechas hoy'):'Aún no tienes nada para hoy'}</div></div></div></section>
     ${notifCard()}
     ${hs.length?`<div class="section-title">Tu rutina de hoy</div>${momentsBlock(hs)}`:templatesBlock()}`;
