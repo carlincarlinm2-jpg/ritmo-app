@@ -317,6 +317,41 @@ html[data-time="night"] .streak-chip{background:rgba(255,255,255,.06)}html[data-
 .rtgl{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:99px;background:#d5d5e0;position:relative;cursor:pointer;flex:none;transition:background .2s;margin:0}
 .rtgl::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
 .rtgl:checked{background:var(--ok)}.rtgl:checked::after{transform:translateX(18px)}
+
+/* ===== Paleta elegante: blanco, grises y negro (sobrescribe la anterior) ===== */
+html[data-time="night"] .seg button.on{background:#2f3035;color:#fff}
+html[data-time="night"] .tag,html[data-time="night"] .seg,html[data-time="night"] .days button,html[data-time="night"] .close,html[data-time="night"] .field input,html[data-time="night"] .field select,html[data-time="night"] .field textarea,html[data-time="night"] .preview{background:#232428!important}
+html[data-time="night"] .sheet{background:#1c1d20}
+
+:root{--bg:#f2f2f3;--card:#ffffff;--ink:#17181a;--ink2:#3c3d42;--muted:#76777e;--line:#e3e3e7;--brand:#1f2024;--brand-d:#17181a;--soft:#ececee;--ok:#4f8a5b;--warn:#b98a3e;--danger:#c25454;
+  --m-manana:#c9a36a;--m-tarde:#b98672;--m-noche:#7f86a8;--m-cualquiera:#7fa38c}
+html[data-time="sunset"]{--bg:#efeeec;--card:#fbfaf9;--line:#e2e0dd;--soft:#e9e7e4;--brand:#1f2024;--brand-d:#17181a}
+html[data-time="night"]{--bg:#131416;--card:#1c1d20;--ink:#ededee;--ink2:#c4c5ca;--muted:#8e8f96;--line:#2c2d32;--soft:#26272b;--brand:#ededee;--brand-d:#ffffff;--ok:#7fb48a;--danger:#e08a8a;--m-manana:#d8b98a;--m-tarde:#cfa18d;--m-noche:#9ea4c4;--m-cualquiera:#9cc0a8}
+body,html[data-time="sunset"] body,html[data-time="night"] body{background:var(--bg)!important}
+.hero,html[data-time="sunset"] .hero,html[data-time="night"] .hero{background:var(--card)!important;border:1px solid var(--line)}
+.fab,html[data-time="sunset"] .fab{background:var(--brand)!important;color:var(--bg)!important;box-shadow:0 12px 26px -12px rgba(0,0,0,.5)!important}
+.mic,html[data-time="sunset"] .mic:not(.rec){background:var(--brand)!important;color:var(--bg)!important;box-shadow:0 14px 30px -14px rgba(0,0,0,.5)!important}
+.mic.rec{background:var(--danger)!important;color:#fff!important}
+.btn.brand,html[data-time="night"] .btn,html[data-time="night"] .btn.brand{background:var(--brand);color:var(--bg)}
+html[data-time="night"] .btn.alt{background:var(--card);color:var(--ink)}
+.days button.on{background:var(--brand);color:var(--bg)}
+.notif-card,html[data-time="night"] .notif-card{background:var(--card)!important}
+.notif-ic{background:var(--brand);color:var(--bg)}
+.t-am,.t-pm,.t-fit,.t-focus,html[data-time="night"] .t-am,html[data-time="night"] .t-pm,html[data-time="night"] .t-fit,html[data-time="night"] .t-focus{background:var(--soft)!important}
+.t-am .tic,.t-pm .tic,.t-fit .tic,.t-focus .tic{color:var(--ink2)!important}
+.tag{background:var(--soft)}.tag.brand{background:var(--soft);color:var(--ink)}.tag.warn{background:var(--soft);color:var(--warn)}
+.streak-chip.on,html[data-time="night"] .streak-chip.on{background:var(--soft)!important;color:var(--ink)!important}
+.streak-chip.on .ic,.streak .ic,.cel-flame{color:#c98a52}
+.side button.nav.active{background:var(--soft);color:var(--ink)}
+.bottom button.active,html[data-time="night"] .bottom button.active{color:var(--ink)}
+html[data-time="night"] .bottom{background:rgba(28,29,32,.92);border-color:rgba(255,255,255,.06)}
+.preview .pic{background:var(--soft);color:var(--ink)}
+.qbar i{background:var(--ink2)}
+.qhero .big{background:none;-webkit-background-clip:initial;background-clip:initial;color:var(--ink)}
+.qchips button.on{border-color:var(--ink);background:var(--soft);color:var(--ink)}
+.field input:focus,.field textarea:focus{border-color:var(--ink2)}
+.rtgl:checked{background:var(--brand)}html[data-time="night"] .rtgl:checked::after{background:var(--bg)}
+.err{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}
 </style>
 </head>
 <body>
@@ -356,6 +391,8 @@ html[data-time="night"] .streak-chip{background:rgba(255,255,255,.06)}html[data-
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="sounds.js" data-app="ritmo"></script>
+<script src="speech-parser.js"></script>
 <script src="parser.js"></script>
 <script>
 /* ====================== Configuración ====================== */
@@ -395,7 +432,7 @@ const ICONS={
   chevR:'<path d="M9 6l6 6-6 6"/>',
 };
 function ic(n,s=20){return `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`}
-function logoSVG(s=36){return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="lgR${s}" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#a996ff"/><stop offset="1" stop-color="#5b45f5"/></linearGradient></defs><rect width="100" height="100" rx="28" fill="#0e0e16"/><circle cx="50" cy="50" r="26" fill="none" stroke="#2a2840" stroke-width="10"/><path d="M50 24a26 26 0 1 1-24.7 18" fill="none" stroke="url(#lgR${s})" stroke-width="10" stroke-linecap="round"/><path d="M40 51l7 7 14-15" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+function logoSVG(s=36){return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="lgR${s}" x1="20" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9b9ca3"/></linearGradient></defs><rect width="100" height="100" rx="28" fill="#17181a"/><circle cx="50" cy="50" r="26" fill="none" stroke="#2c2d32" stroke-width="10"/><path d="M50 24a26 26 0 1 1-24.7 18" fill="none" stroke="url(#lgR${s})" stroke-width="10" stroke-linecap="round"/><path d="M40 51l7 7 14-15" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
 function logoHTML(s=34){return `${logoSVG(s)}<span>Ritmo</span>`}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function hydrateIcons(root=document){root.querySelectorAll('[data-ic]').forEach(el=>{if(!el.dataset.done){el.innerHTML=ic(el.dataset.ic,el.dataset.size?+el.dataset.size:20)+el.innerHTML;el.dataset.done=1}})}
@@ -431,8 +468,8 @@ function moonSVG(size=90,mood='idle'){
     <path class="mo-open" d="M84 127 Q100 150 118 126 Z" fill="#2a1d05"/>
     <ellipse class="mo-snore" cx="101" cy="132" rx="5" ry="4" fill="#2a1d05"/>
   </g>
-  <g class="mo-zzz" fill="#8b7bff" font-family="Outfit,sans-serif" font-weight="800"><text x="152" y="52" font-size="22">z</text><text x="166" y="32" font-size="28">z</text><text x="180" y="10" font-size="34">Z</text></g>
-  <g class="mo-stars" fill="#8b7bff"><path d="M26 44 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M172 150 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/><path d="M30 150 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#f59e0b"/></g>
+  <g class="mo-zzz" fill="#9b9ca3" font-family="Outfit,sans-serif" font-weight="800"><text x="152" y="52" font-size="22">z</text><text x="166" y="32" font-size="28">z</text><text x="180" y="10" font-size="34">Z</text></g>
+  <g class="mo-stars" fill="#c4c5ca"><path d="M26 44 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M172 150 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/><path d="M30 150 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#f59e0b"/></g>
 </svg>`}
 function moonPoke(el){const s=el.closest('svg');if(!s||s.classList.contains('poked'))return;s.classList.add('poked');try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}setTimeout(()=>s.classList.remove('poked'),900)}
 
@@ -458,7 +495,7 @@ function closeSheet(){stopListening();document.getElementById('overlay').classLi
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeSheet()});
 function head(t,sub){return `<div class="sheet-head"><div><h2>${t}</h2>${sub?`<p>${sub}</p>`:''}</div><button class="close" onclick="closeSheet()" aria-label="Cerrar">${ic('close',18)}</button></div>`}
 let toastT;function toast(msg,icn='check'){const t=document.getElementById('toast');t.innerHTML=moonSVG(30,'happy')+esc(msg);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1900)}
-function confetti(x,y){const e=['✦','●','▲','✦'],c=['#6d5dfc','#12b76a','#f59e0b','#ec4899'];for(let i=0;i<14;i++){const s=document.createElement('span');s.className='confetti';s.textContent=e[i%4];s.style.color=c[i%4];s.style.left=x+'px';s.style.top=y+'px';s.style.setProperty('--dx',(Math.random()*160-80)+'px');s.style.setProperty('--dy',(-40-Math.random()*120)+'px');document.body.appendChild(s);setTimeout(()=>s.remove(),1200)}}
+function confetti(x,y){const e=['✦','●','▲','✦'],c=['#f2c94c','#9b9ca3','#ededee','#c98a52'];for(let i=0;i<14;i++){const s=document.createElement('span');s.className='confetti';s.textContent=e[i%4];s.style.color=c[i%4];s.style.left=x+'px';s.style.top=y+'px';s.style.setProperty('--dx',(Math.random()*160-80)+'px');s.style.setProperty('--dy',(-40-Math.random()*120)+'px');document.body.appendChild(s);setTimeout(()=>s.remove(),1200)}}
 function segPick(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
 
 /* ====================== Cuenta ====================== */
@@ -544,7 +581,7 @@ async function saveItem(obj){
 }
 
 /* ====================== Vistas ====================== */
-function ring(pct,size=92){const R=size/2-9,C=2*Math.PI*R;return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${R}" stroke="rgba(120,110,200,.15)" stroke-width="10" fill="none"/><circle cx="${size/2}" cy="${size/2}" r="${R}" stroke="var(--brand)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct/100)}" transform="rotate(-90 ${size/2} ${size/2})" style="transition:stroke-dashoffset .6s"/><text x="50%" y="54%" text-anchor="middle" font-size="18" font-weight="800">${Math.round(pct)}%</text></svg>`}
+function ring(pct,size=92){const R=size/2-9,C=2*Math.PI*R;return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${R}" stroke="var(--line)" stroke-width="10" fill="none"/><circle cx="${size/2}" cy="${size/2}" r="${R}" stroke="var(--brand)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct/100)}" transform="rotate(-90 ${size/2} ${size/2})" style="transition:stroke-dashoffset .6s"/><text x="50%" y="54%" text-anchor="middle" font-size="18" font-weight="800">${Math.round(pct)}%</text></svg>`}
 function habitRow(h){const done=isLogged(h.id),st=streakOf(h);
   return `<div class="row ${done?'done':''}" onclick="toggleHabit('${h.id}',this)"><span class="check ${done?'pop':''}">${done?ic('check',16):''}</span><div class="row-main"><div class="row-title">${h.emoji?h.emoji+' ':''}${esc(h.title)}</div><div class="row-sub">${h.time_of_day?`<span class="tag">${ic('bell',12)} ${hm12(h.time_of_day)}</span>`:''}${st?`<span class="streak">${ic('flame',13)} ${st} ${st===1?'día':'días'}</span>`:''}</div></div><button class="menu-btn" onclick="event.stopPropagation();openEdit('${h.id}')" aria-label="Editar">${ic('more',18)}</button></div>`}
 function todoRow(t){const late=t.on_date<today();return `<div class="row ${t.done?'done':''}" onclick="toggleDone('${t.id}',this)"><span class="check ${t.done?'pop':''}">${t.done?ic('check',16):''}</span><div class="row-main"><div class="row-title">${esc(t.title)}</div>${late?`<div class="row-sub"><span class="tag warn">Pendiente de ${new Date(t.on_date+'T12:00').toLocaleDateString('es-MX',{weekday:'long'})}</span></div>`:''}</div><button class="menu-btn" onclick="event.stopPropagation();openEdit('${t.id}')" aria-label="Editar">${ic('more',18)}</button></div>`}
@@ -714,23 +751,6 @@ async function saveQuit(id,btn){
 async function delQuit(id){if(!confirm('¿Borrar este propósito y su calendario?'))return;const {error}=await sb.from('rt_quits').delete().eq('id',id);if(error)return toast('No se pudo borrar');quits=quits.filter(x=>x.id!==id);qlogs=qlogs.filter(l=>l.quit_id!==id);closeSheet();render()}
 
 
-/* ====================== Sonidos (generados, sin archivos) ====================== */
-let __actx=null;
-function soundOn(){try{return localStorage.getItem('ritmo_sound')!=='off'}catch(e){return true}}
-function setSound(on){try{localStorage.setItem('ritmo_sound',on?'on':'off')}catch(e){}if(on)sfx('ok')}
-function __ac(){if(!__actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;__actx=new C()}if(__actx.state==='suspended')__actx.resume();return __actx}
-function __tone(f,d,{type='sine',vol=.07,at=0,slide=null}={}){const c=__ac();if(!c)return;const t=c.currentTime+at,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02)}
-const SFX={
-  tap(){__tone(1150,.05,{vol:.035,type:'triangle'})},
-  open(){__tone(520,.12,{vol:.045,slide:820})},
-  toggle(){__tone(900,.05,{vol:.04,type:'square'});__tone(1300,.05,{vol:.03,type:'square',at:.05})},
-  ok(){__tone(880,.12,{vol:.06});__tone(1320,.18,{vol:.06,at:.09})},
-  undo(){__tone(700,.1,{vol:.045,slide:420})},
-  celebrate(){[523,659,784,1047].forEach((f,i)=>__tone(f,.22,{vol:.06,type:'triangle',at:i*.09}));__tone(2093,.5,{vol:.03,at:.36})},
-};
-function sfx(n){if(soundOn())try{SFX[n]&&SFX[n]()}catch(e){}}
-document.addEventListener('pointerdown',e=>{const b=e.target.closest('button,.row,.quit,[onclick]');if(!b||b.dataset.nosfx!=null)return;sfx('tap')},{passive:true});
-
 /* ====================== Avisos de rutina por momento ====================== */
 const ROUTINE_DEF={manana:{on:true,times:['07:00','10:30']},tarde:{on:true,times:['13:00','16:30']},noche:{on:true,times:['20:30','23:30']}};
 const ROUTINE_RANGE={manana:['06:00','12:00','6 am a 12 pm'],tarde:['12:00','17:00','12 a 5 pm'],noche:['20:00','01:00','8 pm a 1 am']};
@@ -786,10 +806,10 @@ async function addTemplate(k){
 }
 
 /* ====================== Captura (voz o texto) ====================== */
-let rec=null,listening=false,draft=null,draftForce=null;
+let rec=null,listening=false,draft=null,draftForce=null,draftUser=null;
 function speechAPI(){return window.SpeechRecognition||window.webkitSpeechRecognition}
 function openCapture(force=null,typeOnly=false){
-  draftForce=force;draft=null;
+  draftForce=force;draftUser=null;draft=null;
   const canSpeak=!!speechAPI()&&!typeOnly;
   openSheet(head('Anotar','Dilo con tus palabras. Yo detecto la fecha, la hora y si se repite.')+`
     ${canSpeak?`<div class="mic-wrap"><button class="mic" id="micBtn" onclick="toggleListen()" aria-label="Hablar">${ic('mic',40)}</button><div id="micState" class="mic-hint">Toca para hablar</div></div>`:''}
@@ -810,14 +830,15 @@ function startListening(){
   rec.onresult=e=>{let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;const ta=document.getElementById('capText');if(ta){ta.value=(base?base+' ':'')+txt;reparse()}};
   rec.onerror=e=>{const s=document.getElementById('micState');if(s)s.innerHTML=e.error==='not-allowed'?'Permite el micrófono o usa el del teclado.':'No te escuché bien. Intenta otra vez o escríbelo.';stopListening(true)};
   rec.onend=()=>stopListening(true);
-  try{rec.start();listening=true;const b=document.getElementById('micBtn');if(b)b.classList.add('rec');const s=document.getElementById('micState');if(s)s.innerHTML='<div class="bars"><i></i><i></i><i></i><i></i><i></i></div>'}catch(e){listening=false}
+  try{rec.start();listening=true;sfx('record');const b=document.getElementById('micBtn');if(b)b.classList.add('rec');const s=document.getElementById('micState');if(s)s.innerHTML='<div class="bars"><i></i><i></i><i></i><i></i><i></i></div>'}catch(e){listening=false}
 }
-function stopListening(silent){if(rec){try{rec.stop()}catch(e){}}rec=null;listening=false;const b=document.getElementById('micBtn');if(b)b.classList.remove('rec');const s=document.getElementById('micState');if(s&&s.querySelector('.bars'))s.textContent='Toca para hablar otra vez'}
+function stopListening(silent){if(listening)sfx('stop');if(rec){try{rec.stop()}catch(e){}}rec=null;listening=false;const b=document.getElementById('micBtn');if(b)b.classList.remove('rec');const s=document.getElementById('micState');if(s&&s.querySelector('.bars'))s.textContent='Toca para hablar otra vez'}
 function reparse(){
   const txt=(document.getElementById('capText')?.value||'').trim(),box=document.getElementById('capPreview');if(!box)return;
   if(!txt){box.innerHTML='';draft=null;return}
   draft=parseDictation(txt);
-  if(draftForce&&draftForce!==draft.kind){draft.kind=draftForce;if(draftForce==='reminder'&&!draft.due){const d=new Date(Date.now()+3600e3);d.setMinutes(0,0,0);draft.due=d}}
+  const want=draftUser||(draftForce&&draft.kind==='todo'?draftForce:null);
+  if(want&&want!==draft.kind){draft.kind=want;if(want==='reminder'&&!draft.due){const d=new Date(Date.now()+3600e3);d.setMinutes(0,0,0);draft.due=d}}
   renderDraft();
 }
 function renderDraft(){
@@ -834,7 +855,7 @@ function renderDraft(){
   <button class="btn brand" onclick="saveDraft(this)">${ic('check',18)} Guardar</button>`;
   hydrateIcons(box);
 }
-function setKind(k){draft.kind=k;draftForce=k;if(k==='reminder'&&!draft.due){const d=new Date(Date.now()+3600e3);d.setMinutes(0,0,0);draft.due=d}renderDraft()}
+function setKind(k){draft.kind=k;draftUser=k;sfx('toggle');if(k==='reminder'&&!draft.due){const d=new Date(Date.now()+3600e3);d.setMinutes(0,0,0);draft.due=d}renderDraft()}
 function toggleDay(i){draft.days=draft.days.includes(i)?draft.days.filter(x=>x!==i):[...draft.days,i].sort();if(!draft.days.length)draft.days=[i];renderDraft()}
 async function saveDraft(btn){
   const d=draft;if(!d||!(d.title||'').trim()){alert('Escribe o di qué quieres anotar.');return}
