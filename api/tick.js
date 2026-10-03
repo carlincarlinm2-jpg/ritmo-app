@@ -4,6 +4,7 @@
 const { admin, getVapid, pushToUser, localParts, APP_URL } = require('./_lib');
 const { lanaTick } = require('./_lana');
 const { routineTick } = require('./_routine');
+const { daysTick } = require('./_days');
 
 module.exports = async (req, res) => {
   try {
@@ -49,6 +50,8 @@ module.exports = async (req, res) => {
     try { sent += await routineTick(sb, tzByUser, subsOf); } catch (e) { console.error('routine tick', e.message); }
     // 4) North (finanzas): fechas de pago y de corte (si falla, no afecta los demás avisos).
     try { sent += await lanaTick(sb, tzByUser, subsOf); } catch (e) { console.error('lana tick', e.message); }
+    // 5) Days: cumpleaños, citas y eventos.
+    try { sent += await daysTick(sb, tzByUser, subsOf); } catch (e) { console.error('days tick', e.message); }
     res.status(200).json({ ok: true, sent });
   } catch (e) {
     console.error('tick error', e);
