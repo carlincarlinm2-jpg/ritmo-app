@@ -5,6 +5,7 @@ const { admin, getVapid, pushToUser, localParts, APP_URL } = require('./_lib');
 const { lanaTick } = require('./_lana');
 const { routineTick } = require('./_routine');
 const { daysTick } = require('./_days');
+const { fluentTick } = require('./_fluent');
 
 module.exports = async (req, res) => {
   try {
@@ -52,6 +53,8 @@ module.exports = async (req, res) => {
     try { sent += await lanaTick(sb, tzByUser, subsOf); } catch (e) { console.error('lana tick', e.message); }
     // 5) Days: cumpleaños, citas y eventos.
     try { sent += await daysTick(sb, tzByUser, subsOf); } catch (e) { console.error('days tick', e.message); }
+    // 6) Fluent: recordatorio diario y racha en riesgo.
+    try { sent += await fluentTick(sb, tzByUser, subsOf); } catch (e) { console.error('fluent tick', e.message); }
     res.status(200).json({ ok: true, sent });
   } catch (e) {
     console.error('tick error', e);
