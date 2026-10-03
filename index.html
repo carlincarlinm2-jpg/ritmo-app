@@ -556,7 +556,14 @@ async function toggleDone(id,el){
   if(it.done&&el){const r=el.getBoundingClientRect();confetti(r.left+r.width-30,r.top+10)}
   render();if(it.done)checkDayComplete();await sb.from('rt_items').update({done:it.done,done_at:it.done_at}).eq('id',id);
 }
+
+/* ---- recuperar racha: si se te pasó ayer, completa hoy toda tu rutina y se recupera ---- */
+function dayCompleteFor(d){const hs=items.filter(i=>i.kind==='habit');const due=hs.filter(h=>(h.days||[]).includes(d.getDay())&&new Date(h.created_at||0)<=new Date(dkey(d)+'T23:59:59'));return {due,ok:due.length>0&&due.every(h=>isLogged(h.id,dkey(d)))}}
+function streakRepairInfo(){const y=new Date();y.setDate(y.getDate()-1);const yc=dayCompleteFor(y);if(!yc.due.length||yc.ok)return null;let d=new Date(y),prev=0;for(let i=0;i<365;i++){d.setDate(d.getDate()-1);const c=dayCompleteFor(d);if(!c.due.length)continue;if(c.ok)prev++;else break}if(prev<2)return null;return {y,due:yc.due,prev}}
+async function tryStreakRepair(){const r=streakRepairInfo();if(!r)return false;const hs=habitsToday();if(!hs.length||!hs.every(h=>isLogged(h.id)))return false;const yk=dkey(r.y);const missing=r.due.filter(h=>!isLogged(h.id,yk));missing.forEach(h=>logs.push({item_id:h.id,day:yk}));await sb.from('rt_habit_log').insert(missing.map(h=>({item_id:h.id,user_id:user.id,day:yk})));toast('¡Racha recuperada! '+dayStreak()+' días');return true}
+function streakRepairBanner(){const r=streakRepairInfo();if(!r)return '';return `<section class="card pad" style="border:1.5px solid #c98a52"><b>Recupera tu racha de ${r.prev} días</b><div class="muted small" style="margin-top:4px">Se te pasó ayer. Completa hoy toda tu rutina y tu racha regresa completa.</div></section>`}
 function checkDayComplete(){
+  tryStreakRepair().then(ok=>{if(ok)render()});
   const hs=habitsToday(),td=todosToday();
   if(!hs.length&&!td.length)return;
   if(!hs.every(h=>isLogged(h.id))||!td.every(t=>t.done))return;
@@ -610,7 +617,7 @@ function viewToday(){
   const fecha=(s=>s.charAt(0).toUpperCase()+s.slice(1))(new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}));
   const left=`<section class="hero"><div class="hero-moon">${moonSVG(96,pct===100&&tot?'celebrate':'idle')}</div><div class="hero-hello">${greeting()}${userName()?', '+esc(userName()):''}</div><div class="hero-date">${fecha}</div>${(()=>{const ds=dayStreak();return `<div class="streak-chip ${ds?'on':''}">${ic('flame',16)} ${ds?ds+' '+(ds===1?'día':'días')+' de racha':'Empieza tu racha hoy'}</div>`})()}
     <div class="hero-stats">${ring(pct)}<div><div class="hero-num">${done}<span style="font-size:22px;color:var(--muted)"> / ${tot}</span></div><div class="hero-sub">${tot?(pct===100?'¡Día completo! 🎉':'cosas hechas hoy'):'Aún no tienes nada para hoy'}</div></div></div></section>
-    ${notifCard()}
+    ${streakRepairBanner()}${notifCard()}
     ${hs.length?`<div class="section-title">Tu rutina de hoy</div>${momentsBlock(hs)}`:templatesBlock()}`;
   const right=`${quitsBlock()}<div class="section-title">Pendientes <span class="count">${td.filter(t=>!t.done).length}</span></div><section class="card">${td.length?td.map(todoRow).join(''):`<div class="empty">${moonSVG(64,'idle')}Nada pendiente. Toca el micrófono y di, por ejemplo, <b>"comprar leche"</b>.</div>`}</section>
     <div class="section-title">Próximos avisos <button class="link" onclick="go('reminders')">Ver todos</button></div><section class="card">${rm.length?rm.slice(0,5).map(reminderRow).join(''):`<div class="empty">Di algo como <b>"mañana a las 7 ir al gym"</b> y te aviso a esa hora.</div>`}</section>`;
