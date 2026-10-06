@@ -6,6 +6,7 @@ const { lanaTick } = require('./_lana');
 const { routineTick } = require('./_routine');
 const { daysTick } = require('./_days');
 const { fluentTick } = require('./_fluent');
+const { luzBody } = require('./_luz');
 
 module.exports = async (req, res) => {
   try {
@@ -44,7 +45,7 @@ module.exports = async (req, res) => {
         await sb.from('rt_items').update({ last_notified_date: lp.date }).eq('id', h.id);
         if (doneToday) continue;
         const app = h.app || 'ritmo';
-        sent += await pushToUser(sb, await subsOf(h.user_id, app), { title: `${h.emoji ? h.emoji + ' ' : ''}${h.title}`, body: (app === 'nutri' ? 'Tu brócoli te lo recuerda 🥦' : 'Tu hábito de hoy. ¡Tú puedes!'), tag: h.id + lp.date, url: app === 'ritmo' ? '/?view=today' : APP_URL[app] + '/' });
+        sent += await pushToUser(sb, await subsOf(h.user_id, app), { title: `${h.emoji ? h.emoji + ' ' : ''}${h.title}`, body: (app === 'luz' ? luzBody(h.moment, lp.date) : app === 'nutri' ? 'Tu brócoli te lo recuerda 🥦' : 'Tu hábito de hoy. ¡Tú puedes!'), tag: h.id + lp.date, url: app === 'ritmo' ? '/?view=today' : app === 'luz' ? APP_URL.luz + '/?m=' + (h.moment === 'noche' ? 'noche' : 'manana') : APP_URL[app] + '/' });
       }
     }
     // 3) Avisos de rutina por momento del día.
